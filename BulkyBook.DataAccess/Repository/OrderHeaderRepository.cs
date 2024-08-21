@@ -35,6 +35,7 @@ namespace BulkyBook.DataAccess.Repository
 			var order = _context.OrderHeaders.FirstOrDefault(x => x.Id == id);
 			order.sessionId = sessionId;
             order.PaymentIntentId = paymentIntentId;
+            order.PaymentDate = DateTime.Now;
 		}
 	}
 }

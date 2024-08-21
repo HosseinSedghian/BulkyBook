@@ -6,7 +6,6 @@ using System.Security.Claims;
 using BulkyBook.Models;
 using BulkyBook.Utility;
 using Stripe.Checkout;
-using Microsoft.Extensions.Options;
 
 namespace BulkyBook.Web.Areas.Customer.Controllers
 {
