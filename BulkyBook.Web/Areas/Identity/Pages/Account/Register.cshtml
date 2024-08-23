@@ -1,4 +1,5 @@
 ﻿@page
+@using BulkyBook.Utility
 @model RegisterModel
 @{
     ViewData["Title"] = "Register";
@@ -57,16 +58,19 @@
                 <label asp-for="Input.ConfirmPassword">Confirm Password</label>
                 <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
             </div>
-            <div class="form-floating mb-3 py-2 col-6">
-                <select asp-for="Input.Role" asp-items="@Model.Input.RoleList" class="form-select" id="inputRoleSelect">
-                    <option disabled selected>-Select Role-</option>
-                </select>
-            </div>
-            <div class="form-floating mb-3 py-2 col-6">
-                <select style="display:none" asp-for="Input.CompanyId" asp-items="@Model.Input.CompanyList" class="form-select" id="inputCompanySelect">
+            @if (User.IsInRole(SD.Role_Admin))
+            {
+                <div class="form-floating mb-3 py-2 col-6">
+                    <select asp-for="Input.Role" asp-items="@Model.Input.RoleList" class="form-select" id="inputRoleSelect">
+                        <option disabled selected>-Select Role-</option>
+                    </select>
+                </div>
+                <div class="form-floating mb-3 py-2 col-6">
+                    <select style="display:none" asp-for="Input.CompanyId" asp-items="@Model.Input.CompanyList" class="form-select" id="inputCompanySelect">
                     <option disabled selected>-Select Company-</option>
                 </select>
-            </div>
+                </div>
+            }
             <button id="registerSubmit" type="submit" class="w-100 btn btn-primary">Register</button>
         </form>
     </div>

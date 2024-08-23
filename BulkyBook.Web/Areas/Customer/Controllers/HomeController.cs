@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using BulkyBook.Utility;
 
 namespace BulkyBook.Web.Areas.Customer.Controllers
 {
@@ -59,6 +60,8 @@ namespace BulkyBook.Web.Areas.Customer.Controllers
                 _unitOfWork.ShoppingCart.Add(shoppingCart);
             }
             _unitOfWork.Save();
+            HttpContext.Session.SetInt32(SD.SessionCart,
+                    _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == claims.Value).ToList().Count());
             return RedirectToAction(nameof(Index));
         }
 

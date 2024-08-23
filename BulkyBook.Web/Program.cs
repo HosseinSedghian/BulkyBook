@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using BulkyBook.Utility;
 using Stripe;
+using BulkyBook.DataAccess.DbInitializer;
+
 namespace BulkyBook.Web
 {
     public class Program
@@ -28,12 +30,20 @@ namespace BulkyBook.Web
                 .AddDefaultTokenProviders()
                 .AddEntityFrameworkStores<AppDbContext>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IDbInitializer, DbInitializer>();
             builder.Services.AddSingleton<IEmailSender, EmailSender>();
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.LoginPath = $"/Identity/Account/Login";
                 options.LogoutPath = $"/Identity/Account/Logout";
                 options.AccessDeniedPath = $"/Identity/Account/AccessDenied";
+            });
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(100);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
             });
             var app = builder.Build();
 
@@ -49,8 +59,17 @@ namespace BulkyBook.Web
             app.UseStaticFiles();
             app.UseRouting();
             StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe:SecretKey").Get<string>();
-			app.UseAuthentication();
+
+            // Seed Database
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
+                dbInitializer.Initialize();
+            }
+
+            app.UseAuthentication();
             app.UseAuthorization();
+            app.UseSession();
             app.MapRazorPages();
             app.MapControllerRoute(
                 name: "default",

@@ -6,6 +6,7 @@ using System.Security.Claims;
 using BulkyBook.Models;
 using BulkyBook.Utility;
 using Stripe.Checkout;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace BulkyBook.Web.Areas.Customer.Controllers
 {
@@ -13,10 +14,12 @@ namespace BulkyBook.Web.Areas.Customer.Controllers
 	[Authorize]
 	public class CartController : Controller
 	{
-		public readonly IUnitOfWork _unitOfWork;
-		public CartController(IUnitOfWork unitOfWork)
+		private readonly IUnitOfWork _unitOfWork;
+		private readonly IEmailSender _emailSender;
+		public CartController(IUnitOfWork unitOfWork, IEmailSender emailSender)
 		{
 			_unitOfWork = unitOfWork;
+			_emailSender = emailSender;
 		}
 		public IActionResult Index()
 		{
@@ -155,7 +158,8 @@ namespace BulkyBook.Web.Areas.Customer.Controllers
 
 		public IActionResult OrderConfirmation(int id)
 		{
-			OrderHeader orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(x => x.Id == id);
+			OrderHeader orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(x => x.Id == id,
+				includeProperties:nameof(ApplicationUser));
 			if(orderHeader.PaymentStatus != SD.PaymentStatusDelayedPayment)
 			{
 				var service = new SessionService();
@@ -167,10 +171,13 @@ namespace BulkyBook.Web.Areas.Customer.Controllers
 					_unitOfWork.Save();
 				}
 			}
+			_emailSender.SendEmailAsync(orderHeader.ApplicationUser.Email, "New Order - Bulky Book",
+				"<p>New Order Created</p>");
 			List<ShoppingCart> shopCarts = _unitOfWork.ShoppingCart.GetAll(
 				x => x.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
 			_unitOfWork.ShoppingCart.RemoveRange(shopCarts);
 			_unitOfWork.Save();
+			HttpContext.Session.Clear();
 			return View(id);
 		}
 
@@ -202,7 +209,9 @@ namespace BulkyBook.Web.Areas.Customer.Controllers
 			ShoppingCart cart = _unitOfWork.ShoppingCart.GetFirstOrDefault(filter: x => x.Id == cartId);
 			_unitOfWork.ShoppingCart.Remove(cart);
 			_unitOfWork.Save();
-			return RedirectToAction(nameof(Index));
+            HttpContext.Session.SetInt32(SD.SessionCart,
+                    _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == cart.ApplicationUserId).ToList().Count());
+            return RedirectToAction(nameof(Index));
 		}
 		private double GetPriceBasedQuantity(int quantity, Product product)
 			=> quantity switch
